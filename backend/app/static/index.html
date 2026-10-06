@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Municipal Complaint Intelligence</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa', 300: '#fdba74', 400: '#fb923c', 500: '#f97316', 600: '#ea580c', 700: '#c2410c', 800: '#9a3412', 900: '#7c2d12' },
+            slatebg: { 850: '#172033', 900: '#0f172a', 950: '#080d1a' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Translucent frosted glass effect for centerboxes */
+    .glass-box {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+    }
+    .dark-glass-box {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+    }
+    
+    #map { height: 420px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+
+    /* Infinite Horizontal Image Carousel Animation */
+    @keyframes marquee-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee-scroll 32s linear infinite;
+    }
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+    .mask-fade-edges {
+      mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+    }
+
+    /* Crisp White & High-Contrast Google Translate Dropdown Styling */
+    .goog-te-gadget-simple {
+      background-color: #ffffff !important;
+      border: 2px solid #ea580c !important;
+      padding: 4px 12px !important;
+      border-radius: 8px !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+    }
+    .goog-te-gadget-simple .goog-te-menu-value span {
+      color: #0f172a !important;
+      font-weight: 800 !important;
+    }
+    .goog-te-gadget-simple .goog-te-menu-value span:last-child {
+      color: #ea580c !important;
+    }
+    .goog-te-gadget-icon {
+      display: none !important;
+    }
+    .goog-te-banner-frame {
+      display: none !important;
+    }
+    body {
+      top: 0px !important;
+    }
+  </style>
+
+  <!-- Google Translate Integration Script -->
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'en,hi,mr,gu,bn,ta,te,kn,ml,pa,ur,or,as',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+
+  <!-- TOP-MOST GLOBAL HIGH-CONTRAST REGIONAL LANGUAGE TRANSLATOR BAR (WHITE STYLING) -->
+  <div class="bg-slate-950 border-b-2 border-orange-500/80 text-white px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 z-50 shadow-md">
+    <div class="flex items-center gap-2.5">
+      <span class="flex items-center gap-1.5 text-white font-extrabold uppercase tracking-wider text-xs bg-orange-600 px-3 py-1 rounded-lg shadow">
+        <i data-lucide="languages" class="w-4 h-4 text-white"></i> Select Language:
+      </span>
+      <!-- Google Translate Dropdown Widget with White Background -->
+      <div id="google_translate_element" class="inline-block"></div>
+    </div>
+
+    <!-- Quick Regional Language Buttons with White Background & High Contrast -->
+    <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 text-xs font-bold">
+      <span class="text-slate-300 uppercase text-[11px] mr-1 hidden sm:inline">Quick Switch:</span>
+      <button onclick="setLanguage('en')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">English</button>
+      <button onclick="setLanguage('hi')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">हिन्दी</button>
+      <button onclick="setLanguage('mr')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">मराठी</button>
+      <button onclick="setLanguage('gu')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">ગુજરાતી</button>
+      <button onclick="setLanguage('bn')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">বাংলা</button>
+      <button onclick="setLanguage('ta')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">தமிழ்</button>
+      <button onclick="setLanguage('te')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">తెలుగు</button>
+      <button onclick="setLanguage('pa')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">ਪੰਜਾਬੀ</button>
+      <button onclick="setLanguage('ur')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-orange-500 text-slate-900 hover:text-white border border-slate-300 hover:border-orange-500 transition shadow">اردو</button>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 dark-glass-box text-white px-5 py-3 rounded-xl shadow-2xl z-50 flex items-center space-x-3 border border-orange-500/40">
+    <i data-lucide="bell" class="w-4 h-4 text-orange-400"></i>
+    <span id="toast-msg">Notification</span>
+  </div>
+
+  <!-- ================= AUTH SCREEN GATEWAY (CLEAN & SIMPLE LOGIN / REGISTER / FORGOT PASS) ================= -->
+  <div id="authScreen" class="flex-1 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden bg-slate-950">
+    <!-- Subtle ambient glow -->
+    <div class="absolute -top-32 -left-32 w-80 h-80 bg-orange-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -right-32 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-md w-full dark-glass-box p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800 space-y-6 relative z-10">
+      
+      <!-- Logo & Clean Header -->
+      <div class="text-center space-y-1.5">
+        <div class="inline-flex w-12 h-12 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 items-center justify-center font-bold text-2xl text-white shadow-lg shadow-orange-600/30">
+          🏛️
+        </div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Municipal Portal</h2>
+        <p class="text-xs text-slate-400">Smart Civic Intelligence & Grievance Redressal</p>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs font-bold">
+        <button onclick="switchAuthTab('login')" id="authTab-login" class="flex-1 py-2 rounded-lg bg-orange-600 text-white shadow transition">
+          Sign In
+        </button>
+        <button onclick="switchAuthTab('register')" id="authTab-register" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">
+          Register
+        </button>
+        <button onclick="switchAuthTab('forgot')" id="authTab-forgot" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">
+          Forgot Password
+        </button>
+      </div>
+
+      <!-- 1. SIMPLE LOGIN FORM -->
+      <form id="loginForm" onsubmit="handleUserLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Email / Phone / Username</label>
+          <input type="text" id="loginEmail" required placeholder="e.g. citizen@smartmuni.gov or +91 98765 43210" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-orange-500 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-orange-500 transition" />
+        </div>
+
+        <button type="submit" id="loginSubmitBtn" class="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i> Sign In
+        </button>
+
+        <!-- Fast Demo Buttons -->
+        <div class="pt-2 border-t border-slate-800 text-center space-y-1.5">
+          <span class="text-[11px] text-slate-400 font-medium">Quick Demo Accounts:</span>
+          <div class="grid grid-cols-3 gap-2 text-xs">
+            <button type="button" onclick="quickFillLogin('citizen@smartmuni.gov', 'password123')" class="p-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 font-semibold transition">
+              Citizen
+            </button>
+            <button type="button" onclick="quickFillLogin('officer@smartmuni.gov', 'password123')" class="p-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-amber-400 font-semibold transition">
+              Officer
+            </button>
+            <button type="button" onclick="quickFillLogin('admin@smartmuni.gov', 'password123')" class="p-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-orange-400 font-semibold transition">
+              Admin
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- 2. REGISTER FORM -->
+      <form id="registerForm" onsubmit="handleUserRegister(event)" class="hidden space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+          <input type="text" id="regName" required placeholder="e.g. Vikram Verma" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:ring-2 focus:ring-orange-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+          <input type="email" id="regEmail" required placeholder="user@gmail.com" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:ring-2 focus:ring-orange-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Mobile Number</label>
+          <input type="tel" id="regPhone" placeholder="+91 98765 43210" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:ring-2 focus:ring-orange-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Role</label>
+          <select id="regRole" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm">
+            <option value="citizen">Citizen Resident</option>
+            <option value="officer">Field Officer</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+          <input type="password" id="regPassword" required placeholder="••••••••" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:ring-2 focus:ring-orange-500" />
+        </div>
+
+        <button type="submit" id="regSubmitBtn" class="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+          <i data-lucide="user-plus" class="w-4 h-4"></i> Create Account
+        </button>
+      </form>
+
+      <!-- 3. FORGOT PASSWORD WITH SECURE MOBILE SMS OTP -->
+      <div id="forgotForm" class="hidden space-y-4">
+        
+        <!-- Step 1: Request OTP -->
+        <div id="forgotStep1" class="space-y-4">
+          <p class="text-xs text-slate-400">Enter your registered mobile number or email. A 6-digit verification OTP will be sent directly to your phone.</p>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Registered Mobile or Email</label>
+            <input type="text" id="forgotIdentifier" required placeholder="e.g. +91 98765 43210 or citizen@smartmuni.gov" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:ring-2 focus:ring-orange-500 transition" />
+          </div>
+          <button type="button" onclick="handleSendOTP()" id="sendOtpBtn" class="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+            <i data-lucide="smartphone" class="w-4 h-4"></i> Send OTP to Mobile Number
+          </button>
+        </div>
+
+        <!-- Step 2: Verify OTP received on phone & Set New Password -->
+        <div id="forgotStep2" class="hidden space-y-4">
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/50 text-xs text-emerald-300 space-y-1">
+            <div class="font-bold flex items-center gap-1.5">
+              <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+              <span>OTP Sent to Mobile Number</span>
+            </div>
+            <p id="otpSentAlertText" class="text-[11px] text-slate-300">A 6-digit OTP has been dispatched to your mobile phone. Please check your SMS messages and enter the code below.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Enter 6-Digit OTP from SMS</label>
+            <input type="text" id="forgotOtpInput" maxlength="6" placeholder="e.g. 654321" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-center font-mono text-base tracking-widest focus:ring-2 focus:ring-orange-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">New Password</label>
+            <input type="password" id="forgotNewPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:ring-2 focus:ring-orange-500" />
+          </div>
+
+          <button type="button" onclick="handleVerifyAndResetPassword()" id="resetPassBtn" class="w-full py-3 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Verify OTP & Reset Password
+          </button>
+
+          <div class="flex items-center justify-between text-xs pt-1 text-slate-400">
+            <button type="button" onclick="handleSendOTP()" class="text-orange-400 hover:text-orange-300 font-semibold underline">
+              Resend SMS OTP
+            </button>
+            <button type="button" onclick="document.getElementById('forgotStep2').classList.add('hidden'); document.getElementById('forgotStep1').classList.remove('hidden');" class="text-slate-400 hover:text-white">
+              &larr; Change Mobile/Email
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MAIN APPLICATION DASHBOARD (SHOWN WHEN LOGGED IN) ================= -->
+  <div id="appContainer" class="hidden flex-1 flex flex-col">
+    
+    <!-- Top Navigation Header with GPS Location Display -->
+    <header class="bg-slate-950/95 backdrop-blur-md text-white shadow-xl sticky top-0 z-40 border-b border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+        
+        <!-- Brand Logo & Live GPS Location Indicator -->
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-orange-600/30">
+              🏛️
+            </div>
+            <div>
+              <h1 class="font-bold text-base sm:text-lg tracking-tight leading-tight text-white flex items-center gap-2">
+                Smart Municipal Intelligence
+              </h1>
+              <p class="text-xs text-orange-400 font-medium">Civic AI Grievance Platform &bull; Google Gemini &bull; Live GPS &bull; GIS</p>
+            </div>
+          </div>
+
+          <!-- TOP LIVE GPS LOCATION BADGE -->
+          <div id="topGpsBadge" class="hidden lg:flex items-center gap-1.5 bg-slate-900 text-orange-300 px-3 py-1 rounded-xl border border-orange-500/40 text-xs font-semibold shadow-inner">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-orange-400 animate-bounce"></i>
+            <span id="topGpsLocationText">Detecting Live Location...</span>
+          </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+          <!-- Role Navigation Tabs -->
+          <nav class="hidden md:flex items-center space-x-1 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 shadow-inner">
+            <button onclick="switchTab('citizen')" id="tab-citizen" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-orange-600 text-white shadow-md shadow-orange-600/30 flex items-center gap-1.5">
+              <i data-lucide="user" class="w-4 h-4"></i> Citizen Portal
+            </button>
+            <button onclick="switchTab('officer')" id="tab-officer" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-orange-400 hover:bg-slate-800/60 flex items-center gap-1.5">
+              <i data-lucide="shield-alert" class="w-4 h-4"></i> Officer Queue
+            </button>
+            <button onclick="switchTab('admin')" id="tab-admin" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-orange-400 hover:bg-slate-800/60 flex items-center gap-1.5">
+              <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Admin & GIS
+            </button>
+            <button onclick="switchTab('rag')" id="tab-rag" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-orange-400 hover:bg-slate-800/60 flex items-center gap-1.5">
+              <i data-lucide="book-open" class="w-4 h-4"></i> Policy RAG AI
+            </button>
+          </nav>
+
+          <!-- Profile Section at Top Right Corner -->
+          <div class="relative">
+            <button onclick="toggleProfileMenu()" id="profileBtn" class="flex items-center space-x-2.5 p-1.5 pr-3 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700 hover:border-orange-500/60 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <div class="relative">
+                <div id="userAvatar" class="w-8 h-8 rounded-lg bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-bold text-xs text-white shadow">
+                  RS
+                </div>
+                <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-orange-500 border-2 border-slate-900 rounded-full"></span>
+              </div>
+              <div class="text-left hidden sm:block">
+                <div id="profileHeaderName" class="text-xs font-bold leading-tight text-slate-200">Rahul Sharma</div>
+                <div id="profileHeaderRole" class="text-[10px] font-semibold text-orange-400 uppercase tracking-wider">Citizen</div>
+              </div>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-72 dark-glass-box rounded-2xl shadow-2xl py-3 z-50 text-slate-200 transition-all duration-150 transform origin-top-right">
+              <div class="px-4 pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                  <div id="profileDropdownAvatar" class="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-sm shadow">
+                    RS
+                  </div>
+                  <div class="overflow-hidden">
+                    <div id="profileDropdownName" class="text-sm font-bold text-white truncate">Rahul Sharma</div>
+                    <div id="profileDropdownEmail" class="text-xs text-slate-400 truncate">citizen@smartmuni.gov</div>
+                    <span id="profileDropdownBadge" class="inline-block mt-1 px-2 py-0.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-md text-[10px] font-bold uppercase">
+                      Citizen Resident
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Switch Persona Section -->
+              <div class="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Switch Persona:</p>
+                <div class="space-y-1">
+                  <button onclick="switchUserPersona('citizen')" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-500/10 text-xs font-medium flex items-center justify-between text-slate-300 hover:text-orange-400 transition">
+                    <span class="flex items-center gap-2"><i data-lucide="user" class="w-3.5 h-3.5 text-orange-400"></i> Citizen (Resident)</span>
+                    <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">Demo</span>
+                  </button>
+                  <button onclick="switchUserPersona('officer')" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-500/10 text-xs font-medium flex items-center justify-between text-slate-300 hover:text-orange-400 transition">
+                    <span class="flex items-center gap-2"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-500"></i> Field Officer (Roads)</span>
+                    <span class="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded">Staff</span>
+                  </button>
+                  <button onclick="switchUserPersona('admin')" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-orange-500/10 text-xs font-medium flex items-center justify-between text-slate-300 hover:text-orange-400 transition">
+                    <span class="flex items-center gap-2"><i data-lucide="crown" class="w-3.5 h-3.5 text-orange-400"></i> Commissioner (Admin)</span>
+                    <span class="text-[10px] bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded">Executive</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sign Out Option -->
+              <div class="px-2 py-1.5 text-xs font-medium text-slate-300 space-y-0.5">
+                <a href="/docs" target="_blank" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition">
+                  <i data-lucide="code" class="w-4 h-4 text-orange-400"></i> OpenAPI Documentation
+                </a>
+                <button onclick="handleSignOut()" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-500/20 text-red-400 transition text-left font-bold">
+                  <i data-lucide="log-out" class="w-4 h-4 text-red-400"></i> Sign Out Account
+                </button>
+              </div>
+
+              <div class="px-4 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                <span>Jurisdiction: Indore MC</span>
+                <span class="text-orange-400 font-semibold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping"></span> Live
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SLOWLY RUNNING HORIZONTAL IMAGE STRIP (Continuous Marquee) -->
+    <section class="w-full py-3 bg-slate-950/80 border-b border-slate-800/80 overflow-hidden relative">
+      <div class="max-w-7xl mx-auto px-4 mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-400">
+        <span class="flex items-center gap-2 text-orange-400 uppercase tracking-wider text-[11px]">
+          <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+          Municipal Operations & Field Action Feed
+        </span>
+        <span class="text-[11px] text-slate-500 hidden sm:inline">24x7 Civic Redressal &bull; Drainage, Sanitation, Waste & Roads</span>
+      </div>
+
+      <!-- Infinite horizontal scrolling strip -->
+      <div class="mask-fade-edges overflow-hidden relative w-full py-1">
+        <div class="marquee-track flex gap-4 items-center">
+          <!-- Set 1 -->
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_drainage.jpg" alt="Drainage & Manhole Repair" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="wrench" class="w-3.5 h-3.5 text-orange-400"></i> Drainage & Sewer Work</span>
+            </div>
+          </div>
+
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_truck.jpg" alt="Wastewater Suction Unit" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="truck" class="w-3.5 h-3.5 text-orange-400"></i> Wastewater Jetting Unit</span>
+            </div>
+          </div>
+
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_garbage.jpg" alt="Solid Waste Management Team" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="trash-2" class="w-3.5 h-3.5 text-orange-400"></i> Solid Waste Collection</span>
+            </div>
+          </div>
+
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_sweeping.jpg" alt="Street Cleaning & Sanitation" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-orange-400"></i> Daily Street Sanitation</span>
+            </div>
+          </div>
+
+          <!-- Set 2 -->
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_drainage.jpg" alt="Drainage & Manhole Repair" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="wrench" class="w-3.5 h-3.5 text-orange-400"></i> Drainage & Sewer Work</span>
+            </div>
+          </div>
+
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_truck.jpg" alt="Wastewater Suction Unit" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="truck" class="w-3.5 h-3.5 text-orange-400"></i> Wastewater Jetting Unit</span>
+            </div>
+          </div>
+
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_garbage.jpg" alt="Solid Waste Management Team" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="trash-2" class="w-3.5 h-3.5 text-orange-400"></i> Solid Waste Collection</span>
+            </div>
+          </div>
+
+          <div class="relative w-64 h-32 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 flex-shrink-0 group">
+            <img src="/static/images/muni_sweeping.jpg" alt="Street Cleaning & Sanitation" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent flex items-end p-2.5">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-orange-400"></i> Daily Street Sanitation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <!-- TAB 1: CITIZEN PORTAL -->
+      <div id="view-citizen" class="space-y-8">
+        
+        <!-- Top Banner in Gray and Orange Gradient -->
+        <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-orange-950/70 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-slate-800">
+          <div class="relative z-10 max-w-3xl">
+            <span class="bg-orange-500/20 text-orange-300 text-xs px-3.5 py-1 rounded-full font-bold border border-orange-500/40 inline-flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-orange-400"></i> Multilingual AI Grievance Intake
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold mt-3 tracking-tight">Report Civic Issues in English, Hindi, or Hinglish</h2>
+            <p class="text-slate-300 text-sm mt-2 leading-relaxed">
+              Our Gemini-powered intelligence automatically classifies your problem, detects urgency, pins geographic coordinates, prevents duplicate tickets, and notifies the responsible ward department.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Centerbox: Complaint Submission (With Voice Assistant & GPS) -->
+          <div class="lg:col-span-7 dark-glass-box p-6 sm:p-7 rounded-3xl shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="file-edit" class="w-5 h-5 text-orange-500"></i> Submit New Complaint
+              </h3>
+              <span class="text-[11px] bg-orange-500/10 text-orange-400 border border-orange-500/30 px-2.5 py-0.5 rounded-full font-semibold">
+                Instant AI Triage
+              </span>
+            </div>
+
+            <form id="complaintForm" onsubmit="handleComplaintSubmit(event)" class="space-y-4">
+              
+              <!-- Describe Issue with Voice Dictation Button -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Describe Issue <span class="text-orange-500">*</span>
+                  </label>
+                  <!-- VOICE ASSISTANT BUTTON -->
+                  <button type="button" onclick="toggleVoiceDictation()" id="voiceBtn" class="px-3 py-1 bg-orange-600/20 hover:bg-orange-600 text-orange-300 hover:text-white border border-orange-500/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow">
+                    <i data-lucide="mic" class="w-3.5 h-3.5 text-orange-400"></i>
+                    <span id="voiceBtnText">Speak by Voice</span>
+                  </button>
+                </div>
+
+                <!-- Live Voice Listening Status Banner -->
+                <div id="voiceStatusBanner" class="hidden mb-2 p-2.5 rounded-xl bg-orange-950/80 border border-orange-500/60 text-xs text-orange-200 flex items-center justify-between shadow-lg">
+                  <span class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> 
+                    <span>🎙️ <strong>Listening...</strong> Speak your complaint in Hindi, English, or Hinglish</span>
+                  </span>
+                  <button type="button" onclick="stopVoiceDictation()" class="text-[10px] bg-orange-600 px-2.5 py-1 rounded-lg text-white font-bold hover:bg-orange-500">Stop</button>
+                </div>
+
+                <textarea id="complaintText" rows="4" required placeholder="Type or click 'Speak by Voice' to dictate: e.g. Vijay Nagar square pe bada pothole hai / Major water pipeline burst on main road..." class="w-full px-4 py-3 rounded-2xl bg-slate-950/70 border border-slate-700 text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm shadow-inner transition"></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Your Name</label>
+                  <input type="text" id="citizenName" placeholder="e.g. Rahul Sharma" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:ring-2 focus:ring-orange-500 transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Phone Number</label>
+                  <input type="tel" id="citizenPhone" placeholder="+91 98765 43210" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:ring-2 focus:ring-orange-500 transition" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Area / Landmark</label>
+                  <input type="text" id="addressText" placeholder="e.g. Palasia Market or Vijay Nagar" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:ring-2 focus:ring-orange-500 transition" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">GPS Coordinates</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="coordsInput" placeholder="22.7533, 75.8937" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-100 font-mono text-xs focus:ring-2 focus:ring-orange-500 transition" />
+                    <button type="button" onclick="getCurrentGPS()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-orange-400 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1 transition">
+                      <i data-lucide="crosshair" class="w-4 h-4"></i> GPS
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" id="submitBtn" class="w-full py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-2xl shadow-lg shadow-orange-600/30 transition flex items-center justify-center gap-2 text-sm">
+                <i data-lucide="send" class="w-4 h-4"></i> Submit Complaint to Municipal AI
+              </button>
+            </form>
+          </div>
+
+          <!-- Centerbox: Public Tracking Card -->
+          <div class="lg:col-span-5 space-y-6">
+            <div class="dark-glass-box p-6 rounded-3xl shadow-2xl space-y-4">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="search" class="w-5 h-5 text-orange-500"></i> Track Complaint Status
+              </h3>
+              <p class="text-xs text-slate-400">Enter your unique Tracking ID to see live AI classification, priority, and progress.</p>
+              
+              <div class="flex gap-2">
+                <input type="text" id="trackInput" placeholder="e.g. SMC-20261006-CRIT01" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm font-mono uppercase focus:ring-2 focus:ring-orange-500 transition" />
+                <button onclick="handleTrackSearch()" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-sm shadow-md transition">
+                  Track
+                </button>
+              </div>
+
+              <!-- Tracking Result Box -->
+              <div id="trackingResult" class="hidden mt-4 pt-4 border-t border-slate-800 space-y-4"></div>
+            </div>
+
+            <!-- Quick Sample Complaint Triggers -->
+            <div class="dark-glass-box p-5 rounded-3xl shadow-lg border border-slate-800">
+              <h4 class="text-xs font-bold text-orange-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Try Sample Complaint Scenarios
+              </h4>
+              <div class="space-y-2 text-xs">
+                <button onclick="fillSample('Emergency! Major water pipeline burst near MY Hospital on AB Road flooding the road.', 'Near MY Hospital', 22.7165, 75.8705)" class="w-full text-left p-2.5 rounded-xl bg-slate-950/60 hover:bg-orange-950/40 border border-slate-800 hover:border-orange-500/50 font-medium text-slate-300 transition">
+                  🚨 <span class="font-bold text-red-400">Critical Water:</span> Pipeline burst near Hospital (AB Road)
+                </button>
+                <button onclick="fillSample('Vijay Nagar square pe bahut bada gaddha hai, bike riders gir rahe hain.', 'Vijay Nagar Square', 22.7533, 75.8937)" class="w-full text-left p-2.5 rounded-xl bg-slate-950/60 hover:bg-orange-950/40 border border-slate-800 hover:border-orange-500/50 font-medium text-slate-300 transition">
+                  🚧 <span class="font-bold text-orange-400">Hinglish Roads:</span> Pothole accident risk at Vijay Nagar
+                </button>
+                <button onclick="fillSample('खतरनाक खुला मैनहोल राजवाड़ा चौक के पास तुरंत बंद करें।', 'Rajwada Chowk', 22.7186, 75.8550)" class="w-full text-left p-2.5 rounded-xl bg-slate-950/60 hover:bg-orange-950/40 border border-slate-800 hover:border-orange-500/50 font-medium text-slate-300 transition">
+                  ⚠️ <span class="font-bold text-red-400">Hindi Drainage:</span> Open Manhole at Rajwada Chowk
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: OFFICER QUEUE -->
+      <div id="view-officer" class="hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 dark-glass-box p-5 rounded-3xl border border-slate-800 shadow-xl">
+          <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <i data-lucide="clipboard-list" class="w-6 h-6 text-orange-500"></i> Field Officer Triage & Resolution Queue
+            </h2>
+            <p class="text-xs text-slate-400">Sorted by AI Urgency Priority and SLA Deadlines. Includes full date/time stamps, completion checkboxes, and complaint deletion.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="filterCategory" onchange="loadOfficerComplaints()" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500">
+              <option value="">All Categories</option>
+              <option value="roads">Roads</option>
+              <option value="water supply">Water Supply</option>
+              <option value="drainage">Drainage</option>
+              <option value="garbage">Garbage</option>
+              <option value="streetlights">Streetlights</option>
+              <option value="sanitation">Sanitation</option>
+            </select>
+            <select id="filterPriority" onchange="loadOfficerComplaints()" class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-xs font-medium focus:ring-2 focus:ring-orange-500">
+              <option value="">All Priorities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <button onclick="loadOfficerComplaints()" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Complaint Cards Container -->
+        <div id="officerComplaintsList" class="space-y-4"></div>
+      </div>
+
+      <!-- TAB 3: ADMIN & GIS DASHBOARD -->
+      <div id="view-admin" class="hidden space-y-6">
+        
+        <!-- KPI Cards in Gray and Orange -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="kpiContainer">
+          <!-- Dynamically injected -->
+        </div>
+
+        <!-- Map & Hotspot Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-8 dark-glass-box p-5 rounded-3xl border border-slate-800 shadow-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i data-lucide="map-pin" class="w-5 h-5 text-orange-500"></i> GIS Spatial Map & Complaint Clustering
+              </h3>
+              <span id="mapCityBadge" class="text-xs bg-orange-500/20 text-orange-300 border border-orange-500/30 px-3 py-1 rounded-full font-semibold">City: Live GPS Location</span>
+            </div>
+            <div id="map"></div>
+            <div class="flex flex-wrap items-center gap-4 text-xs pt-1 text-slate-400">
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-red-600 inline-block"></span> Critical Priority</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span> High Priority</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-500 inline-block"></span> Medium</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Resolved</span>
+            </div>
+          </div>
+
+          <!-- Hotspots & Workload sidebar in Dark Glass -->
+          <div class="lg:col-span-4 space-y-6">
+            <div class="dark-glass-box p-5 rounded-3xl border border-slate-800 shadow-xl space-y-3">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="flame" class="w-4 h-4 text-orange-500"></i> Detected Geo Hotspots (DBSCAN)
+              </h3>
+              <div id="hotspotList" class="space-y-2 text-xs"></div>
+            </div>
+
+            <div class="dark-glass-box p-5 rounded-3xl border border-slate-800 shadow-xl space-y-3">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-orange-400"></i> Department Workload
+              </h3>
+              <div id="workloadList" class="space-y-3 text-xs"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: RAG POLICY KNOWLEDGE ASSISTANT (EXPANDED FULL WINDOW) -->
+      <div id="view-rag" class="hidden space-y-6 w-full">
+        <div class="dark-glass-box p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl space-y-6 w-full">
+          
+          <!-- Header Banner Full Width -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div class="space-y-1">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center font-bold text-white shadow-lg shadow-orange-600/30">
+                  <i data-lucide="bot" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    Municipal Policy & SLA RAG Knowledge Engine
+                  </h2>
+                  <p class="text-xs text-slate-400">Retrieval-Augmented Generation powered by Google Gemini &bull; Verified Citations from Municipal Citizen Charters</p>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs bg-orange-500/10 text-orange-300 border border-orange-500/30 px-3 py-1.5 rounded-xl font-mono flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span> Gemini LLM Grounded
+              </span>
+              <span class="text-xs bg-slate-800 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl font-mono hidden sm:inline">
+                Anti-Hallucination Guardrail: ON
+              </span>
+            </div>
+          </div>
+
+          <!-- Full Window 2-Column Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+            
+            <!-- Left Column (Query & Grounded Response Area) -->
+            <div class="lg:col-span-8 space-y-5">
+              <!-- Suggested Prompt Chips -->
+              <div class="space-y-2">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-orange-400"></i> Popular Policy & SLA Inquiries:
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="askRAGPrompt('What is the SLA deadline for open or broken manholes?')" class="text-xs px-3 py-1.5 bg-slate-950 hover:bg-orange-500/20 text-slate-300 hover:text-orange-300 rounded-xl border border-slate-800 hover:border-orange-500/40 transition">
+                    🕳️ Open Manhole SLA
+                  </button>
+                  <button onclick="askRAGPrompt('What is the protocol for major drinking water pipeline burst?')" class="text-xs px-3 py-1.5 bg-slate-950 hover:bg-orange-500/20 text-slate-300 hover:text-orange-300 rounded-xl border border-slate-800 hover:border-orange-500/40 transition">
+                    💧 Water Pipeline Burst Protocol
+                  </button>
+                  <button onclick="askRAGPrompt('What are the escalation steps if a road pothole is not repaired on time?')" class="text-xs px-3 py-1.5 bg-slate-950 hover:bg-orange-500/20 text-slate-300 hover:text-orange-300 rounded-xl border border-slate-800 hover:border-orange-500/40 transition">
+                    🚧 Road Repair Escalation
+                  </button>
+                  <button onclick="askRAGPrompt('Can a complaint be resolved without photo evidence?')" class="text-xs px-3 py-1.5 bg-slate-950 hover:bg-orange-500/20 text-slate-300 hover:text-orange-300 rounded-xl border border-slate-800 hover:border-orange-500/40 transition">
+                    📷 Photo Proof Requirement
+                  </button>
+                  <button onclick="askRAGPrompt('What is the maximum resolution SLA for garbage overflow at collection points?')" class="text-xs px-3 py-1.5 bg-slate-950 hover:bg-orange-500/20 text-slate-300 hover:text-orange-300 rounded-xl border border-slate-800 hover:border-orange-500/40 transition">
+                    🗑️ Solid Waste Resolution SLA
+                  </button>
+                </div>
+              </div>
+
+              <!-- Ask Box -->
+              <div class="flex gap-2 pt-1">
+                <input type="text" id="ragQuestionInput" placeholder="Ask any question regarding SLAs, department escalation, or municipal policies..." class="w-full px-4 py-3.5 rounded-2xl bg-slate-950/80 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:ring-2 focus:ring-orange-500 shadow-inner" onkeydown="if(event.key==='Enter') executeRAGQuery()" />
+                <button onclick="executeRAGQuery()" id="ragBtn" class="px-7 py-3.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold rounded-2xl text-sm shadow-lg shadow-orange-600/30 transition flex items-center gap-2 flex-shrink-0">
+                  <i data-lucide="sparkles" class="w-4 h-4"></i> Consult AI
+                </button>
+              </div>
+
+              <!-- RAG Answer Area -->
+              <div id="ragResponseContainer" class="hidden p-6 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4 shadow-xl"></div>
+            </div>
+
+            <!-- Right Column (Official Policy Documents) -->
+            <div class="lg:col-span-4 space-y-4">
+              <div class="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+                <h3 class="text-xs font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <i data-lucide="book" class="w-4 h-4"></i> Ingested Knowledge Documents
+                </h3>
+                <div class="space-y-2 text-xs">
+                  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                    <div class="font-bold text-white flex items-center justify-between">
+                      <span>Citizen Charter & SLA Policy 2026</span>
+                      <span class="text-[10px] bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded">SLA</span>
+                    </div>
+                    <p class="text-slate-400 text-[11px]">Roads, PHE Water, Drainage, Solid Waste, Electrical SOP timelines.</p>
+                  </div>
+
+                  <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                    <div class="font-bold text-white flex items-center justify-between">
+                      <span>Grievance Redressal Manual</span>
+                      <span class="text-[10px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded">Guideline</span>
+                    </div>
+                    <p class="text-slate-400 text-[11px]">Zonal escalation matrix, photo verification & citizen ratings.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2.5 text-xs text-slate-400">
+                <h4 class="font-bold text-slate-300 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Citation & Safety Policy
+                </h4>
+                <p class="text-[11px] leading-relaxed">
+                  All answers are grounded strictly in indexed municipal documents. If an inquiry falls outside official municipal scope, the model gracefully refuses to prevent hallucination.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal: AI Override -->
+  <div id="overrideModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="dark-glass-box rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-700">
+      <h3 class="text-lg font-bold text-white flex items-center gap-2">
+        <i data-lucide="edit-3" class="w-5 h-5 text-orange-500"></i> Override AI Classification
+      </h3>
+      <p class="text-xs text-slate-400">Every human correction is logged into the audit trail for continuous model retraining.</p>
+      
+      <input type="hidden" id="overrideComplaintId" />
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">Field to Override</label>
+        <select id="overrideField" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-sm">
+          <option value="category">Category</option>
+          <option value="priority">Priority</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">New Value</label>
+        <input type="text" id="overrideNewValue" placeholder="e.g. water supply or Critical" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-sm" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">Officer Rationale</label>
+        <textarea id="overrideReason" rows="2" placeholder="Explain reason for override..." class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-slate-200 text-sm"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeOverrideModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs">Cancel</button>
+        <button onclick="submitOverride()" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-xs shadow">Apply Override</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let mapInstance = null;
+    let markersLayer = null;
+    let currentUser = null;
+    let speechRecognition = null;
+    let isListening = false;
+    let voiceBaseText = "";
+    let finalVoiceTranscript = "";
+    let currentLiveLat = null;
+    let currentLiveLon = null;
+    let currentLiveCity = "Live Location";
+
+    // Switch Tabs
+    function switchTab(tab) {
+      ['citizen', 'officer', 'admin', 'rag'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-400 hover:text-orange-400 hover:bg-slate-800/60 flex items-center gap-1.5";
+      });
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}`).className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-orange-600 text-white shadow-md shadow-orange-600/30 flex items-center gap-1.5";
+
+      if (tab === 'admin') {
+        setTimeout(initMapAndDashboard, 100);
+      } else if (tab === 'officer') {
+        loadOfficerComplaints();
+      }
+      lucide.createIcons();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 3500);
+    }
+
+    // ================= LIVE GPS LOCATION ACQUISITION & REVERSE GEOCODING =================
+    async function updateLocationFromCoords(lat, lon, isGps = true) {
+      currentLiveLat = lat;
+      currentLiveLon = lon;
+
+      const topBadge = document.getElementById('topGpsBadge');
+      const topText = document.getElementById('topGpsLocationText');
+      if (topBadge) topBadge.classList.remove('hidden');
+      
+      const coordsField = document.getElementById('coordsInput');
+      if (coordsField) coordsField.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+      try {
+        const resp = await fetch(`/api/v1/complaints/geo/reverse?lat=${lat}&lon=${lon}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          currentLiveCity = data.city || data.short_label || 'Live Location';
+          const label = data.short_label || data.city || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+          if (topText) {
+            topText.innerText = `${label} (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+          }
+          
+          const mapBadge = document.getElementById('mapCityBadge');
+          if (mapBadge) mapBadge.innerText = `City: ${currentLiveCity}`;
+
+          const addrField = document.getElementById('addressText');
+          if (addrField && (!addrField.value || addrField.value.includes('Palasia') || addrField.value.includes('Indore'))) {
+            addrField.value = data.full_address || label;
+          }
+
+          if (mapInstance) {
+            mapInstance.setView([lat, lon], 13);
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn("Reverse geocode fetch notice:", err);
+      }
+
+      if (topText) {
+        topText.innerText = `GPS (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      }
+    }
+
+    async function initLiveGPSLocation() {
+      const topBadge = document.getElementById('topGpsBadge');
+      const topText = document.getElementById('topGpsLocationText');
+      if (topBadge) topBadge.classList.remove('hidden');
+      if (topText) topText.innerText = "Detecting Live Location...";
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            await updateLocationFromCoords(lat, lon, true);
+          },
+          async (err) => {
+            console.warn("Browser GPS permission/timeout, attempting IP location fallback:", err);
+            try {
+              const ipRes = await fetch('https://ipapi.co/json/');
+              if (ipRes.ok) {
+                const ipData = await ipRes.json();
+                if (ipData.latitude && ipData.longitude) {
+                  const lat = parseFloat(ipData.latitude);
+                  const lon = parseFloat(ipData.longitude);
+                  currentLiveLat = lat;
+                  currentLiveLon = lon;
+                  currentLiveCity = ipData.city || ipData.region || "Live Location";
+                  if (topText) topText.innerText = `${currentLiveCity} (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+                  const mapBadge = document.getElementById('mapCityBadge');
+                  if (mapBadge) mapBadge.innerText = `City: ${currentLiveCity}`;
+                  const coordsField = document.getElementById('coordsInput');
+                  if (coordsField) coordsField.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                  const addrField = document.getElementById('addressText');
+                  if (addrField && !addrField.value) {
+                    addrField.value = `${ipData.city || ''}, ${ipData.region || ''}, ${ipData.country_name || ''}`.replace(/^, /, '');
+                  }
+                  if (mapInstance) {
+                    mapInstance.setView([lat, lon], 13);
+                  }
+                  return;
+                }
+              }
+            } catch(e){}
+            if (topText) topText.innerText = "Location Detected (Tap to Refresh)";
+          },
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      } else {
+        if (topText) topText.innerText = "GPS Not Available";
+      }
+    }
+
+    async function getCurrentGPS() {
+      showToast("📡 Fetching precise GPS location...");
+      await initLiveGPSLocation();
+      showToast("✅ Live GPS Location Updated!");
+    }
+
+    // ================= VOICE ASSISTANT / SPEECH-TO-TEXT (NON-DUPLICATING) =================
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        return null;
+      }
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'hi-IN'; // Works seamlessly with Hindi, Hinglish and English
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const item = event.results[i];
+          const transcriptPiece = item[0].transcript;
+          if (item.isFinal) {
+            finalVoiceTranscript += transcriptPiece + ' ';
+          } else {
+            interimTranscript += transcriptPiece;
+          }
+        }
+        
+        // Combine base text (before listening started) + finalized chunks + interim live speech
+        const prefix = voiceBaseText ? voiceBaseText.trim() + ' ' : '';
+        const fullDictated = (prefix + finalVoiceTranscript + interimTranscript).replace(/\s+/g, ' ');
+        document.getElementById('complaintText').value = fullDictated;
+      };
+
+      recognition.onerror = (event) => {
+        console.warn("Speech recognition error:", event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showToast("Microphone access blocked. Please allow microphone permissions in your browser.");
+          stopVoiceDictation();
+        }
+      };
+
+      recognition.onend = () => {
+        if (isListening) {
+          try {
+            recognition.start();
+          } catch(e) {
+            stopVoiceDictation();
+          }
+        } else {
+          stopVoiceDictation();
+        }
+      };
+
+      return recognition;
+    }
+
+    function toggleVoiceDictation() {
+      if (isListening) {
+        stopVoiceDictation();
+        return;
+      }
+
+      // Record text that was already in textarea before user clicked Voice
+      const currentArea = document.getElementById('complaintText');
+      voiceBaseText = currentArea.value ? currentArea.value.trim() : '';
+      finalVoiceTranscript = '';
+
+      if (!speechRecognition) {
+        speechRecognition = initSpeechRecognition();
+      }
+
+      if (!speechRecognition) {
+        showToast("Speech recognition is not supported in this browser. Please use Google Chrome or MS Edge.");
+        return;
+      }
+
+      try {
+        isListening = true;
+        speechRecognition.start();
+        document.getElementById('voiceBtn').className = "px-3 py-1 bg-red-600 hover:bg-red-700 text-white border border-red-500 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow animate-pulse";
+        document.getElementById('voiceBtnText').innerText = "Stop Listening";
+        document.getElementById('voiceStatusBanner').classList.remove('hidden');
+        showToast("🎙️ Listening... Speak naturally in Hindi, English or Hinglish");
+      } catch (err) {
+        console.warn("Speech start exception:", err);
+        try { speechRecognition.stop(); } catch(e){}
+      }
+    }
+
+    function stopVoiceDictation() {
+      isListening = false;
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch(e){}
+      }
+      const btn = document.getElementById('voiceBtn');
+      if (btn) {
+        btn.className = "px-3 py-1 bg-orange-600/20 hover:bg-orange-600 text-orange-300 hover:text-white border border-orange-500/50 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow";
+      }
+      const btnTxt = document.getElementById('voiceBtnText');
+      if (btnTxt) {
+        btnTxt.innerText = "Speak by Voice";
+      }
+      const banner = document.getElementById('voiceStatusBanner');
+      if (banner) {
+        banner.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    // ================= AUTH GATEWAY FUNCTIONS =================
+    function switchAuthTab(tab) {
+      ['login', 'register', 'forgot'].forEach(t => {
+        document.getElementById(`${t}Form`).classList.add('hidden');
+        document.getElementById(`authTab-${t}`).className = "flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition";
+      });
+      document.getElementById(`${tab}Form`).classList.remove('hidden');
+      document.getElementById(`authTab-${tab}`).className = "flex-1 py-2 rounded-lg bg-orange-600 text-white shadow transition";
+      lucide.createIcons();
+    }
+
+    function quickFillLogin(email, pass) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').value = pass;
+    }
+
+    async function handleUserLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      const btn = document.getElementById('loginSubmitBtn');
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Authenticating...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          currentUser = data.user;
+          localStorage.setItem('smc_token', data.access_token);
+          localStorage.setItem('smc_user', JSON.stringify(data.user));
+          showToast(`Welcome back, ${data.user.name}!`);
+          revealAppDashboard();
+        } else {
+          showToast(data.detail || 'Login failed. Please check your credentials.');
+        }
+      } catch (err) {
+        showToast('Login connection error.');
+      } finally {
+        btn.innerHTML = `<i data-lucide="log-in" class="w-4 h-4"></i> Sign In`;
+        lucide.createIcons();
+      }
+    }
+
+    async function handleUserRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      const role = document.getElementById('regRole').value;
+      const password = document.getElementById('regPassword').value;
+
+      const btn = document.getElementById('regSubmitBtn');
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Creating Account...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, phone, role, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast('Account registered successfully! Please log in.');
+          switchAuthTab('login');
+          document.getElementById('loginEmail').value = email;
+          document.getElementById('loginPassword').value = password;
+        } else {
+          showToast(data.detail || 'Registration failed.');
+        }
+      } catch (err) {
+        showToast('Registration error.');
+      } finally {
+        btn.innerHTML = `<i data-lucide="user-plus" class="w-4 h-4"></i> Create Account`;
+        lucide.createIcons();
+      }
+    }
+
+    let pendingForgotIdentifier = '';
+
+    async function handleSendOTP() {
+      const identifier = document.getElementById('forgotIdentifier').value.trim();
+      if (!identifier) {
+        showToast('Please enter your mobile number or email.');
+        return;
+      }
+
+      const btn = document.getElementById('sendOtpBtn');
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Sending OTP via SMS...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/v1/auth/forgot-password/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ account_identifier: identifier })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          pendingForgotIdentifier = identifier;
+          document.getElementById('otpSentAlertText').innerText = `A 6-digit OTP code has been dispatched to ${data.masked_destination}. Please check your SMS messages and enter the code.`;
+          document.getElementById('forgotStep1').classList.add('hidden');
+          document.getElementById('forgotStep2').classList.remove('hidden');
+          showToast(`OTP sent to mobile: ${data.masked_destination}`);
+        } else {
+          showToast(data.detail || 'Could not send OTP to this number.');
+        }
+      } catch (err) {
+        showToast('Error requesting OTP.');
+      } finally {
+        btn.innerHTML = `<i data-lucide="smartphone" class="w-4 h-4"></i> Send OTP to Mobile Number`;
+        lucide.createIcons();
+      }
+    }
+
+    async function handleVerifyAndResetPassword() {
+      const otp = document.getElementById('forgotOtpInput').value.trim();
+      const new_password = document.getElementById('forgotNewPassword').value;
+
+      if (!otp || !new_password) {
+        showToast('Please enter the OTP received on your phone and a new password.');
+        return;
+      }
+
+      const btn = document.getElementById('resetPassBtn');
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Verifying...`;
+      lucide.createIcons();
+
+      const identifier = pendingForgotIdentifier || document.getElementById('forgotIdentifier').value.trim();
+
+      try {
+        const res = await fetch('/api/v1/auth/forgot-password/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            account_identifier: identifier,
+            otp: otp,
+            new_password: new_password
+          })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast('Password updated successfully! Please sign in.');
+          switchAuthTab('login');
+          document.getElementById('loginEmail').value = pendingForgotIdentifier;
+          document.getElementById('loginPassword').value = new_password;
+          document.getElementById('forgotStep1').classList.remove('hidden');
+          document.getElementById('forgotStep2').classList.add('hidden');
+          document.getElementById('forgotOtpInput').value = '';
+        } else {
+          showToast(data.detail || 'Invalid or expired OTP code.');
+        }
+      } catch (err) {
+        showToast('Error resetting password.');
+      } finally {
+        btn.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i> Verify OTP & Reset Password`;
+        lucide.createIcons();
+      }
+    }
+
+    function handleSignOut() {
+      localStorage.removeItem('smc_token');
+      localStorage.removeItem('smc_user');
+      currentUser = null;
+      document.getElementById('appContainer').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
+      showToast('Signed out successfully.');
+      lucide.createIcons();
+    }
+
+    function revealAppDashboard() {
+      document.getElementById('authScreen').classList.add('hidden');
+      document.getElementById('appContainer').classList.remove('hidden');
+      
+      const stored = localStorage.getItem('smc_user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          document.getElementById('profileHeaderName').innerText = u.name;
+          document.getElementById('profileHeaderRole').innerText = u.role.toUpperCase();
+          document.getElementById('profileDropdownName').innerText = u.name;
+          document.getElementById('profileDropdownEmail').innerText = u.email;
+          document.getElementById('profileDropdownBadge').innerText = u.role.toUpperCase();
+          document.getElementById('userAvatar').innerText = u.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+        } catch(e){}
+      }
+      initLiveGPSLocation();
+      lucide.createIcons();
+    }
+
+    function fillSample(text, addr, lat, lon) {
+      document.getElementById('complaintText').value = text;
+      document.getElementById('addressText').value = addr;
+      document.getElementById('coordsInput').value = `${lat}, ${lon}`;
+      showToast("Sample complaint loaded. Click Submit to process!");
+    }
+
+    // Submit Complaint
+    async function handleComplaintSubmit(e) {
+      e.preventDefault();
+      const text = document.getElementById('complaintText').value;
+      const citizen_name = document.getElementById('citizenName').value;
+      const citizen_phone = document.getElementById('citizenPhone').value;
+      const address_text = document.getElementById('addressText').value;
+      const coords = document.getElementById('coordsInput').value.split(',');
+      
+      let latitude = coords.length === 2 ? parseFloat(coords[0].trim()) : null;
+      let longitude = coords.length === 2 ? parseFloat(coords[1].trim()) : null;
+
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Processing with Gemini AI...`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/v1/complaints', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, citizen_name, citizen_phone, address_text, latitude, longitude })
+        });
+        const data = await res.json();
+        
+        btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Submit Complaint to Municipal AI`;
+        lucide.createIcons();
+        
+        showToast(`Complaint Registered! Tracking ID: ${data.tracking_id}`);
+        document.getElementById('trackInput').value = data.tracking_id;
+        handleTrackSearch();
+        document.getElementById('complaintText').value = '';
+      } catch (err) {
+        btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i> Submit Complaint to Municipal AI`;
+        lucide.createIcons();
+        showToast("Error processing complaint.");
+      }
+    }
+
+    // Track Complaint
+    async function handleTrackSearch() {
+      const trackingId = document.getElementById('trackInput').value.trim();
+      if (!trackingId) return;
+      
+      const resContainer = document.getElementById('trackingResult');
+      resContainer.classList.remove('hidden');
+      resContainer.innerHTML = `<div class="text-xs text-slate-400 py-4 text-center">Fetching tracking details...</div>`;
+
+      try {
+        const res = await fetch(`/api/v1/complaints/track/${encodeURIComponent(trackingId)}`);
+        if (!res.ok) {
+          resContainer.innerHTML = `<div class="text-xs text-red-400 font-bold">Complaint not found with ID: ${trackingId}</div>`;
+          return;
+        }
+        const c = await res.json();
+        
+        const priColor = c.priority === 'Critical' ? 'bg-red-500/20 text-red-300 border-red-500/40' :
+                         c.priority === 'High' ? 'bg-orange-500/20 text-orange-300 border-orange-500/40' : 'bg-sky-500/20 text-sky-300 border-sky-500/40';
+
+        resContainer.innerHTML = `
+          <div class="space-y-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-xs font-bold text-white">${c.tracking_id}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${priColor}">${c.priority} Priority</span>
+            </div>
+            
+            <div class="text-xs text-slate-200 font-medium">"${c.text}"</div>
+
+            <!-- AI Classification Insight -->
+            <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 space-y-1 text-xs">
+              <div class="flex justify-between items-center text-slate-400">
+                <span>AI Category: <strong class="text-orange-400 capitalize">${c.category}</strong> (${Math.round(c.category_confidence*100)}% confidence)</span>
+                <span class="text-orange-300 bg-orange-500/20 px-2 py-0.5 rounded text-[10px] font-bold">Language: ${c.language}</span>
+              </div>
+              <p class="text-slate-400 text-[11px]">${c.category_reason || ''}</p>
+            </div>
+
+            <!-- Status Stepper -->
+            <div class="pt-2 border-t border-slate-800">
+              <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
+                <span>Status: <strong class="text-orange-400 uppercase">${c.status}</strong></span>
+                <span>Department: ${c.department_name}</span>
+              </div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-gradient-to-r from-orange-600 to-amber-500 h-full" style="width: ${c.status === 'Submitted' ? '25%' : c.status === 'Assigned' ? '50%' : c.status === 'In Progress' ? '75%' : '100%'}"></div>
+              </div>
+            </div>
+
+            ${c.cluster_size > 1 ? `<div class="bg-amber-500/10 text-amber-300 text-[11px] p-2 rounded-xl border border-amber-500/30">👥 Grouped with <strong>${c.cluster_size}</strong> similar citizen reports in this area.</div>` : ''}
+          </div>
+        `;
+      } catch (err) {
+        resContainer.innerHTML = `<div class="text-xs text-red-400">Failed to load tracking data.</div>`;
+      }
+    }
+
+    // Officer List
+    async function loadOfficerComplaints() {
+      const cat = document.getElementById('filterCategory').value;
+      const pri = document.getElementById('filterPriority').value;
+      let url = '/api/v1/complaints?limit=30';
+      if (cat) url += `&category=${encodeURIComponent(cat)}`;
+      if (pri) url += `&priority=${encodeURIComponent(pri)}`;
+
+      const container = document.getElementById('officerComplaintsList');
+      container.innerHTML = `<div class="text-xs text-slate-400 py-8 text-center">Loading assigned queue...</div>`;
+
+      try {
+        const res = await fetch(url);
+        const complaints = await res.json();
+        
+        if (complaints.length === 0) {
+          container.innerHTML = `<div class="text-xs text-slate-400 dark-glass-box p-8 rounded-2xl text-center border border-slate-800">No complaints found matching filters.</div>`;
+          return;
+        }
+
+        container.innerHTML = complaints.map(c => {
+          const isResolved = c.status === 'Resolved' || c.status === 'Closed';
+          const priBadge = c.priority === 'Critical' ? 'bg-red-600 text-white' :
+                           c.priority === 'High' ? 'bg-orange-500 text-white' :
+                           c.priority === 'Medium' ? 'bg-sky-500 text-white' : 'bg-emerald-500 text-white';
+
+          const reasonsHtml = c.priority_reasons && c.priority_reasons.length > 0 ? 
+            c.priority_reasons.map(r => `<li>&bull; ${r}</li>`).join('') : '<li>&bull; Standard civic issue</li>';
+
+          const createdDateFormatted = new Date(c.created_at).toLocaleString('en-US', {
+            month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+          });
+
+          const slaDateFormatted = c.sla_due_at ? new Date(c.sla_due_at).toLocaleString('en-US', {
+            month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+          }) : 'N/A';
+
+          return `
+            <div class="dark-glass-box p-5 rounded-3xl border ${isResolved ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800'} shadow-xl space-y-4 transition">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3">
+                  <!-- Completed Checkbox -->
+                  <label class="flex items-center gap-2 cursor-pointer group" title="Mark as Completed">
+                    <input type="checkbox" ${isResolved ? 'checked' : ''} onchange="toggleComplaintCompleted(${c.id}, this.checked)" class="w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-700 bg-slate-950 cursor-pointer" />
+                    <span class="text-xs font-bold ${isResolved ? 'text-emerald-400 line-through' : 'text-white'}">${c.tracking_id}</span>
+                  </label>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${priBadge}">${c.priority}</span>
+                  <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full font-medium capitalize">${c.category}</span>
+                  ${isResolved ? '<span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Completed</span>' : `<span class="text-[10px] bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2 py-0.5 rounded-full font-semibold">${c.status}</span>`}
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="openOverrideModal(${c.id})" class="text-xs px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition">
+                    Override AI
+                  </button>
+                  ${!isResolved ? `
+                    <button onclick="updateComplaintStatusPrompt(${c.id}, 'In Progress')" class="text-xs px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl font-semibold transition">
+                      In Progress
+                    </button>
+                    <button onclick="updateComplaintStatusPrompt(${c.id}, 'Resolved')" class="text-xs px-2.5 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-semibold transition shadow">
+                      Mark Resolved
+                    </button>
+                  ` : `
+                    <button onclick="updateComplaintStatusPrompt(${c.id}, 'In Progress')" class="text-xs px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-semibold transition">
+                      Reopen Ticket
+                    </button>
+                  `}
+                  <!-- Delete Option -->
+                  <button onclick="deleteComplaint(${c.id}, '${c.tracking_id}')" class="text-xs px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-xl font-semibold transition flex items-center gap-1" title="Delete complaint">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs">
+                <div class="lg:col-span-8 space-y-2">
+                  <p class="text-sm font-medium ${isResolved ? 'text-slate-400' : 'text-slate-100'}">"${c.text}"</p>
+                  
+                  <!-- Date, Time, Location & Citizen Details -->
+                  <div class="text-slate-400 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+                    <span class="flex items-center gap-1.5 font-medium text-slate-300">
+                      <i data-lucide="calendar" class="w-3.5 h-3.5 text-orange-400"></i>
+                      <strong>Date & Time:</strong> ${createdDateFormatted}
+                    </span>
+                    <span class="flex items-center gap-1.5 text-orange-400 font-medium">
+                      <i data-lucide="clock" class="w-3.5 h-3.5 text-orange-500"></i>
+                      <strong>SLA Due:</strong> ${slaDateFormatted}
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                      <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400"></i>
+                      ${c.address_text || 'Coordinates: ' + c.latitude + ', ' + c.longitude}
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                      <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
+                      ${c.citizen_name || 'Citizen'} (${c.citizen_phone || 'No phone'})
+                    </span>
+                  </div>
+                </div>
+
+                <!-- AI Explainability Box -->
+                <div class="lg:col-span-4 bg-slate-950/70 p-3 rounded-2xl border border-slate-800 space-y-1 text-[11px]">
+                  <div class="font-bold text-slate-300 flex justify-between">
+                    <span>AI Reasoning</span>
+                    <span class="text-orange-400">${Math.round(c.category_confidence*100)}% conf</span>
+                  </div>
+                  <ul class="text-slate-400 space-y-0.5">${reasonsHtml}</ul>
+                  ${c.cluster_size > 1 ? `<div class="text-amber-400 font-bold pt-1">⚠️ Cluster Size: ${c.cluster_size} reports</div>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        lucide.createIcons();
+      } catch (err) {
+        container.innerHTML = `<div class="text-xs text-red-400">Failed to load officer complaints.</div>`;
+      }
+    }
+
+    async function toggleComplaintCompleted(id, isChecked) {
+      const newStatus = isChecked ? 'Resolved' : 'In Progress';
+      try {
+        await fetch(`/api/v1/complaints/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus, note: isChecked ? 'Checked and marked as Completed by Officer.' : 'Reopened ticket to In Progress.' })
+        });
+        showToast(isChecked ? 'Complaint marked as Completed!' : 'Complaint marked as In Progress.');
+        loadOfficerComplaints();
+      } catch (err) {
+        showToast('Error updating completion status.');
+      }
+    }
+
+    async function deleteComplaint(id, trackingId) {
+      if (!confirm(`Are you sure you want to permanently delete complaint ${trackingId}?`)) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/v1/complaints/${id}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          showToast(`Complaint ${trackingId} deleted successfully.`);
+          loadOfficerComplaints();
+        } else {
+          showToast('Failed to delete complaint.');
+        }
+      } catch (err) {
+        showToast('Error deleting complaint.');
+      }
+    }
+
+    async function updateComplaintStatusPrompt(id, status) {
+      try {
+        await fetch(`/api/v1/complaints/${id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, note: `Status updated to ${status} by Field Officer.` })
+        });
+        showToast(`Complaint status updated to ${status}!`);
+        loadOfficerComplaints();
+      } catch (err) {
+        showToast("Error updating status.");
+      }
+    }
+
+    function openOverrideModal(id) {
+      document.getElementById('overrideComplaintId').value = id;
+      document.getElementById('overrideModal').classList.remove('hidden');
+    }
+    function closeOverrideModal() {
+      document.getElementById('overrideModal').classList.add('hidden');
+    }
+    async function submitOverride() {
+      const id = document.getElementById('overrideComplaintId').value;
+      const field = document.getElementById('overrideField').value;
+      const new_value = document.getElementById('overrideNewValue').value;
+      const reason = document.getElementById('overrideReason').value;
+      
+      try {
+        await fetch(`/api/v1/complaints/${id}/override`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ field, new_value, reason })
+        });
+        closeOverrideModal();
+        showToast("AI Override applied and logged in audit history!");
+        loadOfficerComplaints();
+      } catch (err) {
+        showToast("Error applying override.");
+      }
+    }
+
+    // Admin & GIS Map
+    async function initMapAndDashboard() {
+      // 1. Load KPIs
+      try {
+        const kpiRes = await fetch('/api/v1/dashboard/summary');
+        const kpi = await kpiRes.json();
+        
+        document.getElementById('kpiContainer').innerHTML = `
+          <div class="dark-glass-box p-4 rounded-2xl border border-slate-800 shadow"><span class="text-[11px] text-slate-400 font-bold uppercase">Total Tickets</span><div class="text-2xl font-extrabold text-white">${kpi.total_complaints}</div></div>
+          <div class="dark-glass-box p-4 rounded-2xl border border-slate-800 shadow"><span class="text-[11px] text-slate-400 font-bold uppercase">Active Queue</span><div class="text-2xl font-extrabold text-orange-400">${kpi.open_complaints}</div></div>
+          <div class="dark-glass-box p-4 rounded-2xl border border-slate-800 shadow"><span class="text-[11px] text-slate-400 font-bold uppercase">Resolved</span><div class="text-2xl font-extrabold text-emerald-400">${kpi.resolved_complaints}</div></div>
+          <div class="dark-glass-box p-4 rounded-2xl border border-slate-800 shadow"><span class="text-[11px] text-slate-400 font-bold uppercase">SLA Compliance</span><div class="text-2xl font-extrabold text-orange-500">${kpi.sla_compliance_rate}%</div></div>
+          <div class="dark-glass-box p-4 rounded-2xl border border-slate-800 shadow"><span class="text-[11px] text-slate-400 font-bold uppercase">Overdue Breaches</span><div class="text-2xl font-extrabold text-red-400">${kpi.overdue_complaints}</div></div>
+          <div class="dark-glass-box p-4 rounded-2xl border border-slate-800 shadow"><span class="text-[11px] text-slate-400 font-bold uppercase">Duplicate Clusters</span><div class="text-2xl font-extrabold text-amber-400">${kpi.duplicate_clusters_count}</div></div>
+        `;
+      } catch (e) {}
+
+      // 2. Init Leaflet Map with live GPS location
+      const centerLat = currentLiveLat || 22.7196;
+      const centerLon = currentLiveLon || 75.8577;
+
+      const mapBadge = document.getElementById('mapCityBadge');
+      if (mapBadge && currentLiveCity) {
+        mapBadge.innerText = `City: ${currentLiveCity}`;
+      }
+
+      if (!mapInstance) {
+        mapInstance = L.map('map').setView([centerLat, centerLon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(mapInstance);
+        markersLayer = L.layerGroup().addTo(mapInstance);
+      } else {
+        mapInstance.setView([centerLat, centerLon], 13);
+        mapInstance.invalidateSize();
+      }
+
+      // 3. Load Map Markers & Plot Live User Pin
+      try {
+        const mapRes = await fetch('/api/v1/dashboard/map');
+        const markers = await mapRes.json();
+        markersLayer.clearLayers();
+        
+        // Add Live GPS Location Pin
+        if (currentLiveLat && currentLiveLon) {
+          const userPin = L.circleMarker([currentLiveLat, currentLiveLon], {
+            radius: 9,
+            fillColor: '#3b82f6',
+            color: '#ffffff',
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 0.95
+          });
+          userPin.bindPopup(`
+            <div class="text-xs space-y-1 text-slate-900">
+              <strong class="text-blue-600">📍 You Are Here (Live Location)</strong><br/>
+              <span>${currentLiveCity}</span><br/>
+              <span class="font-mono text-slate-600">${currentLiveLat.toFixed(4)}, ${currentLiveLon.toFixed(4)}</span>
+            </div>
+          `);
+          markersLayer.addLayer(userPin);
+        }
+
+        markers.forEach(m => {
+          const color = m.priority === 'Critical' ? '#dc2626' :
+                        m.priority === 'High' ? '#ea580c' :
+                        m.priority === 'Medium' ? '#0ea5e9' : '#10b981';
+          
+          const circle = L.circleMarker([m.latitude, m.longitude], {
+            radius: m.priority === 'Critical' ? 10 : 7,
+            fillColor: color,
+            color: '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.85
+          });
+          
+          circle.bindPopup(`
+            <div class="text-xs space-y-1 text-slate-900">
+              <strong class="font-mono">${m.tracking_id}</strong><br/>
+              <span class="capitalize">Category: ${m.category}</span><br/>
+              <span>Priority: <strong>${m.priority}</strong></span><br/>
+              <span class="text-slate-600">${m.address_text || ''}</span>
+            </div>
+          `);
+          markersLayer.addLayer(circle);
+        });
+      } catch (e) {}
+
+      // 4. Load Hotspots & Workload
+      try {
+        const hsRes = await fetch('/api/v1/dashboard/hotspots');
+        const hotspots = await hsRes.json();
+        document.getElementById('hotspotList').innerHTML = hotspots.length ? hotspots.map(h => `
+          <div class="p-3 rounded-2xl bg-orange-950/30 border border-orange-500/30">
+            <div class="font-bold text-orange-400">${h.category.toUpperCase()} Hotspot</div>
+            <div class="text-slate-300 text-[11px]">${h.description}</div>
+          </div>
+        `).join('') : '<div class="text-slate-400">No active high-density hotspots.</div>';
+
+        const wlRes = await fetch('/api/v1/dashboard/workload');
+        const workload = await wlRes.json();
+        document.getElementById('workloadList').innerHTML = workload.map(w => `
+          <div class="space-y-1">
+            <div class="flex justify-between font-medium text-slate-300">
+              <span class="truncate max-w-[160px]">${w.department_name}</span>
+              <span class="font-bold text-orange-400">${w.open_count} open</span>
+            </div>
+            <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-gradient-to-r from-orange-600 to-amber-500 h-full" style="width: ${Math.min(100, w.open_count * 20)}%"></div>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {}
+    }
+
+    // RAG Assistant
+    function askRAGPrompt(p) {
+      document.getElementById('ragQuestionInput').value = p;
+      executeRAGQuery();
+    }
+
+    async function executeRAGQuery() {
+      const q = document.getElementById('ragQuestionInput').value.trim();
+      if (!q) return;
+      
+      const resBox = document.getElementById('ragResponseContainer');
+      resBox.classList.remove('hidden');
+      resBox.innerHTML = `<div class="text-xs text-orange-300 flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin text-orange-400"></i> Retrieving official policy chunks and formulating Gemini cited answer...</div>`;
+      lucide.createIcons();
+
+      try {
+        const res = await fetch('/api/v1/rag/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q })
+        });
+        const data = await res.json();
+        
+        const citationsHtml = data.citations && data.citations.length ? data.citations.map(c => `
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+            <div class="font-bold text-orange-400 text-[11px] flex justify-between">
+              <span>📄 ${c.document_title}</span>
+              <span class="text-slate-400">Page ${c.page} &bull; ${c.section || 'General'}</span>
+            </div>
+            <p class="text-[11px] text-slate-300 italic font-mono bg-slate-950/70 p-2 rounded-lg">"${c.snippet}"</p>
+          </div>
+        `).join('') : '<div class="text-slate-400 text-xs">No direct citations available.</div>';
+
+        resBox.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold text-orange-400 flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4 text-orange-500"></i> Grounded Policy Guidance (Gemini)
+              </span>
+              <span class="text-[11px] bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2 py-0.5 rounded font-medium">Confidence: ${Math.round(data.confidence*100)}%</span>
+            </div>
+            <p class="text-sm font-medium text-slate-100 leading-relaxed">${data.answer}</p>
+            
+            <div class="pt-2">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Retrieved Sources & Citations:</span>
+              <div class="space-y-2">${citationsHtml}</div>
+            </div>
+          </div>
+        `;
+        lucide.createIcons();
+      } catch (err) {
+        resBox.innerHTML = `<div class="text-xs text-red-400">Failed to query RAG assistant.</div>`;
+      }
+    }
+
+    // Profile Menu & Persona State
+    const PERSONAS = {
+      citizen: {
+        name: 'Rahul Sharma',
+        role: 'Citizen',
+        email: 'citizen@smartmuni.gov',
+        badge: 'Citizen Resident',
+        avatar: 'RS',
+        avatarBg: 'bg-orange-600',
+        defaultTab: 'citizen'
+      },
+      officer: {
+        name: 'Rajesh Sharma',
+        role: 'Field Officer',
+        email: 'officer@smartmuni.gov',
+        badge: 'Road & Infra Dept',
+        avatar: 'RO',
+        avatarBg: 'bg-amber-600',
+        defaultTab: 'officer'
+      },
+      admin: {
+        name: 'Dr. Anita Roy',
+        role: 'Commissioner',
+        email: 'admin@smartmuni.gov',
+        badge: 'Executive Admin',
+        avatar: 'AR',
+        avatarBg: 'bg-orange-700',
+        defaultTab: 'admin'
+      }
+    };
+
+    let currentPersona = 'citizen';
+
+    function toggleProfileMenu() {
+      const menu = document.getElementById('profileDropdown');
+      menu.classList.toggle('hidden');
+    }
+
+    function switchUserPersona(personaKey) {
+      if (!PERSONAS[personaKey]) return;
+      currentPersona = personaKey;
+      const p = PERSONAS[personaKey];
+
+      // Update Header Avatar & Name
+      document.getElementById('profileHeaderName').innerText = p.name;
+      document.getElementById('profileHeaderRole').innerText = p.role;
+      document.getElementById('userAvatar').innerText = p.avatar;
+
+      // Update Dropdown Details
+      document.getElementById('profileDropdownName').innerText = p.name;
+      document.getElementById('profileDropdownEmail').innerText = p.email;
+      document.getElementById('profileDropdownBadge').innerText = p.badge;
+      document.getElementById('profileDropdownAvatar').innerText = p.avatar;
+      document.getElementById('profileDropdownAvatar').className = `w-10 h-10 rounded-xl ${p.avatarBg} text-white flex items-center justify-center font-bold text-sm shadow`;
+
+      // Auto-switch to their relevant tab
+      switchTab(p.defaultTab);
+      toggleProfileMenu();
+      showToast(`Switched account to ${p.role}: ${p.name}`);
+    }
+
+    // Google Language Switcher Helper
+    function setLanguage(langCode) {
+      const domain = window.location.hostname;
+      document.cookie = `googtrans=/en/${langCode}; path=/; domain=${domain}`;
+      document.cookie = `googtrans=/en/${langCode}; path=/;`;
+      
+      const select = document.querySelector('.goog-te-combo');
+      if (select) {
+        select.value = langCode;
+        select.dispatchEvent(new Event('change'));
+      } else {
+        window.location.reload();
+      }
+      showToast(`Language switched to ${langCode.toUpperCase()}`);
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', (e) => {
+      const btn = document.getElementById('profileBtn');
+      const menu = document.getElementById('profileDropdown');
+      if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    // Auto-check auth state on initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      const storedUser = localStorage.getItem('smc_user');
+      const storedToken = localStorage.getItem('smc_token');
+      if (storedUser && storedToken) {
+        revealAppDashboard();
+      } else {
+        document.getElementById('authScreen').classList.remove('hidden');
+        document.getElementById('appContainer').classList.add('hidden');
+      }
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

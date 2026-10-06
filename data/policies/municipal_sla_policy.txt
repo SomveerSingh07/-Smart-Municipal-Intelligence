@@ -1,0 +1,25 @@
+# Municipal Citizen Charter & SLA Policy 2026
+
+## 1. Roads and Pavements
+- Pothole and road repair on major arterial roads: SLA 24 hours.
+- Residential street repairs: SLA 48 hours.
+- Dangerous road cave-in / sinkhole: Barricade in 1 hour, repair in 12 hours. Escalation to Executive Engineer (Roads).
+
+## 2. Water Supply & PHE
+- Major pipeline burst: SLA 4 hours (Critical).
+- Drinking water contamination report: Immediate shutoff within 2 hours, repair & lab test within 6 hours.
+- Low water pressure / irregular supply: SLA 24 hours. Escalation to Superintending Engineer (PHE).
+
+## 3. Drainage and Sewerage
+- Open manholes: Immediate safety barricading in 30 minutes, replacement in 4 hours.
+- Sewage overflow in residential area: SLA 6 hours.
+- Routine storm drain cleaning: SLA 48 hours. Escalation to Health & Drainage In-charge.
+
+## 4. Solid Waste Management
+- Garbage collection point overflow / dead animal disposal: SLA 6 hours.
+- Daily missed door-to-door collection: Resolution by 4:00 PM same day. Escalation to Chief Sanitation Inspector.
+
+## 5. Electrical & Streetlights
+- Sparking poles or exposed wires: SLA 30 minutes (Critical Safety).
+- Main intersection dark spots: SLA 12 hours.
+- Individual residential street bulb: SLA 24 hours. Escalation to City Electrical Superintendent.

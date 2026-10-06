@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart_muni_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=Smart Municipal Complaint Intelligence
+      - DATABASE_URL=sqlite:///./municipal_complaints.db
+      - SECRET_KEY=smart-muni-prod-secret-key
+    volumes:
+      - ./backend/municipal_complaints.db:/app/municipal_complaints.db
+    restart: unless-stopped
